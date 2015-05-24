@@ -1,0 +1,92 @@
+---
+title: "Practical Machine Learning Course Project"
+author: "Davis Balaba"
+date: "Sunday, May 24, 2015"
+output: html_document
+---
+
+Step 1 : Load  and inspect data
+
+```{r}
+library(caret)
+library(ggplot2)
+library(rpart)
+library(rpart.plot)
+library(randomForest)
+library(rattle)
+
+train <- read.csv("C:/Users/davis.balaba/Desktop/Coursera/Practical Machine Learning/pml-training.csv",na.strings=c("NA","#DIV/0!", ""), header=TRUE)
+
+test <- read.csv("C:/Users/davis.balaba/Desktop/Coursera/Practical Machine Learning/pml-testing.csv",na.strings=c("NA","#DIV/0!", ""), header=TRUE)
+
+#colnames(train)
+
+
+```
+We observe that columns 1 to 7 should be eliminated as they are not pertinent to the prediction process.
+
+Step 2: Clean data
+
+```{r}
+train <- train[,8:length(colnames(train))]
+dim(train)
+test <- test[,8:length(colnames(test))]
+
+# Delete columns with all missing values
+training2<-train[,colSums(is.na(train)) == 0]
+testing2 <-test[,colSums(is.na(test)) == 0]
+dim(training2)
+dim(testing2)
+
+```
+
+Step 3: Split training sample 60/40 to create in-sample test set
+```{r, echo=FALSE}
+set.seed(90)
+inTrain = createDataPartition(training2$classe, p = .60)[[1]]
+train_tr = training2[ inTrain,]
+train_test = training2[-inTrain,]
+
+dim(train_tr)
+dim(train_test)
+```
+
+Step 4a: Modeling using decision tree
+We examine the output variable and observe that it is a 5-level categorical variable. So first we attempt a decision tree model.
+```{r, echo=FALSE}
+
+summary(train$classe)
+set.seed(90)
+#Create model
+model1 <- rpart(classe ~ ., data=train_tr, method="class")
+# Predict
+prediction1 <- predict(model1, train_test, type = "class")
+#Evaluate model
+# Test results on our subTesting data set:
+confusionMatrix(prediction1, train_test$classe)
+
+```
+This approach yields ~73% accuracy.  
+
+Step 4b: Modeling using random forest
+```{r}
+set.seed(90)
+#Create model
+model2 <- randomForest(classe ~ ., data=train_tr, method="class")
+# Predict
+prediction2 <- predict(model2, train_test, type = "class")
+#Evaluate model
+# Test results on our subTesting data set:
+confusionMatrix(prediction2, train_test$classe)
+
+```
+
+The random forest yields about 99% accuracy and will therefore be used for the final predictions. 
+
+Step 5: Final Prediction
+```{r}
+
+prediction3 <- predict(model2, testing2, type="class")
+prediction3
+
+```
